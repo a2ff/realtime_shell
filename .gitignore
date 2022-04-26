@@ -1,0 +1,10 @@
+*.o
+*.lst
+*.bin
+*.exe
+*.zip
+*.b
+*.po
+*.sw?
+**/.DS_Store
+.vscode
