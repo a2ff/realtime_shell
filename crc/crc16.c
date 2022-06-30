@@ -35,10 +35,10 @@ const u16 _crc16[] = {
   0x0270, 0x8275, 0x827F, 0x027A, 0x826B, 0x026E, 0x0264, 0x8261,
   0x0220, 0x8225, 0x822F, 0x022A, 0x823B, 0x023E, 0x0234, 0x8231,
   0x8213, 0x0216, 0x021C, 0x8219, 0x0208, 0x820D, 0x8207, 0x0202};
-u16 crc16(u16 accum, void *buf, int len) {
-  for(unsigned i = 0; i<len; ++ i) {
-    u16 x = ((accum>>8)^((byte *)buf)[i])&0xFF; accum = (accum<<8)^_crc16[x]; }
-  return accum; }
+static inline u16 crc16byte(u16 crc, byte b) { return (crc<<8)^_crc16[(crc>>8)^b]; }
+u16 crc16(u16 crc, void *buf, int len) {
+  for(unsigned i = 0; i<len; ++ i) { crc = crc16byte(crc, ((byte *)buf)[i]); }
+  return crc; }
 #endif
 
 #ifdef _CRC16_RUNTIME
@@ -49,10 +49,10 @@ void gen_crc16dyn() {
     if(crc&0x8000) crc = (crc<<1)^0x8005; else crc = (crc<<1);
     for(unsigned j = 0; j<i; ++ j) _crc16dyn[i+j] = crc^_crc16dyn[j];
   } while((i<<=1)<256); }
-u16 crc16dyn(u16 accum, void *buf, int len) {
+u16 crc16dyn(u16 crc, void *buf, int len) {
   for(unsigned i = 0; i<len; ++ i) {
-    u16 x = ((accum>>8)^((byte *)buf)[i])&0xFF; accum = (accum<<8)^_crc16dyn[x]; }
-  return accum; }
+    crc = (crc<<8)^_crc16dyn[(crc>>8)^((byte *)buf)[i]]; }
+  return crc; }
 #ifdef _CRC16_DEBUG
 void dump_crc16dyn() {
   printf("\nbytewise precalc table\nconst u16 _crc16[] = {");

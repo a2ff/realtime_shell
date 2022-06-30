@@ -1,11 +1,12 @@
 OPTIONS=CRC16
 OPTIONS_CRC16=PRECALC RUNTIME DEBUG
 OBJS=crc16.o
+CFLAGS=-O
 
 EXE=testcase
 OPTDEFS=$(foreach i,$(OPTIONS),$(patsubst %,_$i_%,$(OPTIONS_$i)))
 DEFS+=$(OPTDEFS)
-CFLAGS=$(patsubst %,-D%, $(DEFS))
+CFLAGS+=$(patsubst %,-D%, $(DEFS))
 
 all: $(EXE)
 
