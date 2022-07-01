@@ -2,7 +2,7 @@
 #include "crc16.h"
 
 #ifdef _CRC16_PRECALC
-const u16 _crc16[] = { 
+const uint16_t _crc16[] = { 
   0x0000, 0x8005, 0x800F, 0x000A, 0x801B, 0x001E, 0x0014, 0x8011,
   0x8033, 0x0036, 0x003C, 0x8039, 0x0028, 0x802D, 0x8027, 0x0022,
   0x8063, 0x0066, 0x006C, 0x8069, 0x0078, 0x807D, 0x8077, 0x0072,
@@ -35,29 +35,29 @@ const u16 _crc16[] = {
   0x0270, 0x8275, 0x827F, 0x027A, 0x826B, 0x026E, 0x0264, 0x8261,
   0x0220, 0x8225, 0x822F, 0x022A, 0x823B, 0x023E, 0x0234, 0x8231,
   0x8213, 0x0216, 0x021C, 0x8219, 0x0208, 0x820D, 0x8207, 0x0202};
-static inline u16 crc16byte(u16 crc, byte b) { return (crc<<8)^_crc16[(crc>>8)^b]; }
-u16 crc16(u16 crc, void *buf, int len) {
-  for(unsigned i = 0; i<len; ++ i) { crc = crc16byte(crc, ((byte *)buf)[i]); }
+uint16_t memcrc16(uint16_t crc, const void *buf, size_t len) {
+  for(size_t i = 0; i<len; ++ i) { crc = crc16(crc, ((uint8_t *)buf)[i]); }
   return crc; }
 #endif
 
 #ifdef _CRC16_RUNTIME
-u16 _crc16dyn[256];
-void gen_crc16dyn() {
-  unsigned i = 1; u16 crc = 0x8000; _crc16dyn[0] = 0;
+uint16_t _crc16rt[256];
+void gen_crc16() {
+  size_t i = 1; uint16_t crc = 0x8000; _crc16rt[0] = 0;
   do {
     if(crc&0x8000) crc = (crc<<1)^0x8005; else crc = (crc<<1);
-    for(unsigned j = 0; j<i; ++ j) _crc16dyn[i+j] = crc^_crc16dyn[j];
+    for(size_t j = 0; j<i; ++ j) _crc16rt[i+j] = crc^_crc16rt[j];
   } while((i<<=1)<256); }
-u16 crc16dyn(u16 crc, void *buf, int len) {
-  for(unsigned i = 0; i<len; ++ i) {
-    crc = (crc<<8)^_crc16dyn[(crc>>8)^((byte *)buf)[i]]; }
+
+uint16_t memcrc16rt(uint16_t crc, const void *buf, size_t len) {
+  for(size_t i = 0; i<len; ++ i) { crc = crc16rt(crc, ((uint8_t *)buf)[i]); }
   return crc; }
+
 #ifdef _CRC16_DEBUG
-void dump_crc16dyn() {
-  printf("\nbytewise precalc table\nconst u16 _crc16[] = {");
-  for(unsigned i = 0; i<256; i += 8) { printf("\n  ");
-    for(unsigned j = 0; j<8; ++ j) printf("0x%04X, ", _crc16dyn[i+j]); }
+void dump_crc16rt() {
+  printf("\nbytewise precalc table\nconst uint16_t _crc16[] = {");
+  for(size_t i = 0; i<256; i += 8) { printf("\n  ");
+    for(size_t j = 0; j<8; ++ j) printf("0x%04X, ", _crc16rt[i+j]); }
   printf("\n};\n"); }
 #endif
 #endif
