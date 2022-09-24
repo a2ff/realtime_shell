@@ -6,7 +6,7 @@ The run-time precalculation subroutine has been used for generated the compile-t
 ## ANSI/IBM Bisync CRC-16
 Generator is x^16+x^15+x^2+1 = 0x8005; init = 0xFFFF; no final xor.
 
-NOTE: because RS-232/422/485 transmits LSB-first, the reversed CRC-16-ANSI would have better error detection, i.e. generator 0xA001. 
+NOTE: because RS-232/422/485 transmits LSB-first, the reversed CRC-16-ANSI would have better error detection, i.e. generator 0xA001.
 
 ## CCITT CRC-16
 Generator is x^16+x^12+x^5+1 = 0x1021; init = 0xFFFF; prepend 0x0000; no final xor.
@@ -17,7 +17,7 @@ Therefore it is equivalent to just start with `memcrc16ccitt(0x1D0F, …)` or `m
 
 If instructed to compute with an initial 0xFFFF and no prepended 0x0000, then just call `memcrc16ccitt(0xFFFF, …)` — just be aware this is not strictly speaking CRC-16-CCITT.
 
-NOTE: ditto, generator 0x8408 would be better. 
+NOTE: ditto, generator 0x8408 would be better.
 
 ## API
 Include `crc16.h` and compile with `-D_CRC_PRECALC` etc. (automated in `Makefile`).
