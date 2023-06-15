@@ -156,32 +156,45 @@ typedef struct SelfCheck {
   U16 expected[CHECK_PERIOD];
 } SelfCheck;
 
-U16 checkCounter(U16 i) { return i+1; }
+U16 checkCounter(U16 x) { return x+1; }
 
-U16 checkGray(U16 i) { // parity-enhanced Gray counter
-  U16 msb = x&~(x-1); return i^((msb<<1)|1); }
-// parity-enhanced Gray code is Gray||parity(Gray), always odd parity
+// parity-enhanced Gray numbers have a trivial incr in binary (no loops)
+// n-bits PE-Gray numbers require uints with n+1 bits
+// parity is in the LSB, the associated Gray number is pe_gray>>1
+// PE-Gray numbers all have odd parity; caller needs to prevent overflow
+// else pegray_inc() will fail (return not a PE-Gray number), thus:
+// precondition: x<2**n and parity(x)==odd
+// postcondition: parity(x)==odd and x=<2**n
+U16 pegray_inc(U16 x) {
+  U16 msb = x&~(x-1); return x^((msb<<1)|1); }
 
-U16 checkLfsr(U16 i) { // Metcalf xorshift, period==65535
-  i ^= i>>7; i ^= i<<9; i ^= i>>13; return i; }
+#define PEGRAY_BITS 15
+U16 pegray_modinc(U8 b, U16 x) {
+  return x==1<<p ? 1 : pegray_inc(x); }
+
+U16 checkGray(U16 x) {
+  return pegray_modinc(15, x); } // period==2**15==32768
+
+U16 checkLfsr(U16 x) { // Metcalf xorshift, period==65535
+  x ^= x>>7; x ^= x<<9; x ^= x>>13; return x; }
 
 // any coprime of the modulus will do as an addend
 // 0xA5A5 0x5A5A 0x5AA5 etc. are not coprimes (typ. by +-1)
 // => chose aperiodic binary alternance 0b101100111000==2872
 volatile const U16 coprime = 2872, modulus = 65535,
                    nonTrivMult = 12345, nonTrivId = 65536-12345;
-U16 checkAlu(U16 i) {
-  return (i*nonTrivMult+i*nonTrivId+coprime)%modulus; }
+U16 checkAlu(U16 x) {
+  return (x*nonTrivMult+x*nonTrivId+coprime)%modulus; }
 
 volatile const U16 perm64k[65536] = { 0xDEAD, /* fill with Metcalf 7,9,8 */ };
-U16 checkRam(U16 i) {
-  return perm64k[i]; }
+U16 checkRam(U16 x) {
+  return perm64k[x]; }
 
 SelfCheck const selfChecks[] = {
+	{ checkGray, 1, [ ... ] },  // CAUTION: only odd-parity numbers
 	{ checkCounter, 1234, [1234+1, 1234+2, ...] },
-	{ checkGray, 2345, [ ... ] },
-	{ checkLfsr, 3456, [ ... ] },
-	{ checkAlu, 4567, [ ... ] },
+	{ checkLfsr, 2345, [ ... ] },
+	{ checkAlu, 3456, [ ... ] },
 	{ checkRam, 5678, [ ... ] }}
 
 unsigned checkPhase;
@@ -190,7 +203,7 @@ void checkInit() {
   checkPhase = 0;
   for(int i = 0; i<CHECK_COUNT; ++ i) checkStates[i] = selfChecks[i].seed; }
 
-void checkOnce() {
+void checkStep() {
   unsigned consensus = 0;
   for(int i = 0; i<CHECK_COUNT; ++ i) {
     checkStates[i] = selfChecks[i].check(checkStates[i]);
@@ -211,16 +224,16 @@ void chksumProg() {
 
 extern void spawn(void (*entry)()); // spawn at foreground priority
 
-extern void appInit(); extern void appOnce();
+extern void appInit(); extern void appStep();
 
 void periodicTask() {
   for(;;) {
-    appOnce(); checkOnce();
+    appStep(); checkStep();
     /* yield until next period (see previous §) */ }}
 
 void main() {
   checkInit(); appInit(); spawn(periodicTask);
-  for(;;) { // background priority
+  for(;;) { // background priority-preemptive
     chksumProg(); }}
 ----------------------------------------
 
